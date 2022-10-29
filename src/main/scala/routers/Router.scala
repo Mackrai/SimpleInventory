@@ -8,7 +8,7 @@ import sttp.tapir.json.circe.jsonBody
 import sttp.tapir.server.ServerEndpoint
 
 trait Router[F[_]] {
-  val base = endpoint.in("api").errorOut(jsonBody[ErrorResponse])
+  protected val api = endpoint.in("api").errorOut(jsonBody[ErrorResponse])
 
   val endpoints: List[ServerEndpoint[Any, F]]
 }

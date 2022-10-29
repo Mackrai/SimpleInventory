@@ -13,49 +13,51 @@ import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.ServerEndpoint.Full
 
 final class InventoryRouter[F[_]: Async](inventoryService: InventoryService[F]) extends Router[F] {
-  val listEndpoint: Endpoint[Unit, Unit, ErrorResponse, ListItemsResponse, Any] =
+  private val base = api.in("items")
+
+  private val listEndpoint: Endpoint[Unit, Unit, ErrorResponse, ListItemsResponse, Any] =
     base.get
       .in("list")
       .out(jsonBody[ListItemsResponse])
 
-  val findItemEndpoint: Endpoint[Unit, String, ErrorResponse, Option[InventoryItem], Any] =
+  private val findItemEndpoint: Endpoint[Unit, String, ErrorResponse, Option[InventoryItem], Any] =
     base.get
       .in("item")
       .in(query[String]("id"))
       .out(jsonBody[Option[InventoryItem]])
 
-  val addItemEndpoint: Endpoint[Unit, AddItemRequest, ErrorResponse, InventoryItem, Any] =
+  private val addItemEndpoint: Endpoint[Unit, AddItemRequest, ErrorResponse, InventoryItem, Any] =
     base.post
       .in("add")
       .in(jsonBody[AddItemRequest])
       .out(jsonBody[InventoryItem])
 
-  val deleteItemEndpoint: Endpoint[Unit, String, ErrorResponse, String, Any] =
+  private val deleteItemEndpoint: Endpoint[Unit, String, ErrorResponse, String, Any] =
     base.delete
       .in("item")
       .in(query[String]("id"))
       .out(stringBody)
 
-  val list: Full[Unit, Unit, Unit, ErrorResponse, ListItemsResponse, Any, F] =
+  private val list: Full[Unit, Unit, Unit, ErrorResponse, ListItemsResponse, Any, F] =
     listEndpoint.serverLogic { _ =>
       inventoryService.list()
         .map(_.leftMap(e => ErrorResponse("500", e.getMessage)))
         .map(_.map(ListItemsResponse.apply))
     }
 
-  val findItem: Full[Unit, Unit, String, ErrorResponse, Option[InventoryItem], Any, F] =
+  private val find: Full[Unit, Unit, String, ErrorResponse, Option[InventoryItem], Any, F] =
     findItemEndpoint.serverLogic { itemId =>
       inventoryService.find(itemId)
         .map(_.leftMap(e => ErrorResponse("500", e.getMessage)))
     }
 
-  val addItem: Full[Unit, Unit, AddItemRequest, ErrorResponse, InventoryItem, Any, F] =
+  private val add: Full[Unit, Unit, AddItemRequest, ErrorResponse, InventoryItem, Any, F] =
     addItemEndpoint.serverLogic { request =>
       inventoryService.insert(request)
         .map(_.leftMap(e => ErrorResponse("500", e.getMessage)))
     }
 
-  val deleteItem: Full[Unit, Unit, String, ErrorResponse, String, Any, F] =
+  private val delete: Full[Unit, Unit, String, ErrorResponse, String, Any, F] =
     deleteItemEndpoint.serverLogic { itemId =>
       inventoryService.delete(itemId)
         .map(_.leftMap(e => ErrorResponse("500", e.getMessage)))
@@ -63,5 +65,5 @@ final class InventoryRouter[F[_]: Async](inventoryService: InventoryService[F]) 
     }
 
   override val endpoints: List[ServerEndpoint[Any, F]] =
-    List(list, findItem, addItem, deleteItem)
+    List(list, find, add, delete)
 }

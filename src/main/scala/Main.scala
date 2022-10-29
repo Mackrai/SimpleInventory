@@ -1,16 +1,18 @@
 package io.simple.inventory
 
 import configs.{AppConfig, DBConfig, ServerConfig}
-import repositories.InventoryRepo
-import routers.{InventoryRouter, Router}
-import services.InventoryService
+import repositories.{InventoryRepo, ItemTypeRepo}
+import routers.{InventoryRouter, ItemTypeRouter, Router}
+import services.{InventoryService, ItemTypeService}
 
 import cats.effect.kernel.Async
 import cats.effect.{ExitCode, IO, IOApp}
 import doobie.util.transactor.Transactor
 import doobie.util.transactor.Transactor.Aux
-import org.http4s.HttpApp
+import org.http4s.{HttpApp, Uri}
 import org.http4s.blaze.server.BlazeServerBuilder
+import org.http4s.headers.Origin
+import org.http4s.server.middleware.CORS
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import pureconfig.ConfigSource
@@ -25,21 +27,33 @@ object Main extends IOApp  {
 
   def makeRouters[F[_] : Async](tx: Transactor[F]): List[Router[F]] = {
     val inventoryRepo = new InventoryRepo
+    val itemTypeRepo = new ItemTypeRepo
 
     val inventoryService = new InventoryService[F](tx, inventoryRepo)
+    val itemTypeService = new ItemTypeService[F](tx, itemTypeRepo)
 
     List(
-      new InventoryRouter[F](inventoryService)
+      new InventoryRouter[F](inventoryService),
+      new ItemTypeRouter[F](itemTypeService)
     )
   }
 
-  def startServer[F[_] : Async](serverConf: ServerConfig, httpApp: HttpApp[F]): F[Unit] =
-    BlazeServerBuilder[F]
-      .bindHttp(serverConf.port, serverConf.host)
-      .withHttpApp(httpApp)
-      .serve
-      .compile
-      .drain
+  def startServer[F[_] : Async](serverConf: ServerConfig, httpApp: HttpApp[F]) = {
+    val withCORS =
+      CORS.policy
+        .withAllowOriginAll
+//        .withAllowOriginHost(Set(
+//          Origin.Host(Uri.Scheme.http, Uri.RegName("localhost"), None)
+//        ))
+
+      BlazeServerBuilder[F]
+        .bindHttp(serverConf.port, serverConf.host)
+        .withHttpApp(withCORS(httpApp))
+        .serve
+        .compile
+        .drain
+  }
+
 
   override def run(args: List[String]): IO[ExitCode] =
     for {

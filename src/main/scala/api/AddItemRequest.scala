@@ -7,7 +7,7 @@ import sttp.tapir.Schema
 
 case class AddItemRequest(title: String,
                           description: Option[String],
-                          itemType: String)
+                          itemTypeCode: String)
 
 object AddItemRequest {
   implicit val decoder: Decoder[AddItemRequest] = deriveDecoder

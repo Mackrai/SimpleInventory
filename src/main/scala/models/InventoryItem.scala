@@ -8,7 +8,7 @@ import sttp.tapir.Schema
 final case class InventoryItem(id: String,
                                title: String,
                                description: Option[String],
-                               itemType: String)
+                               itemTypeCode: String)
 
 object InventoryItem {
   implicit val decoder: Decoder[InventoryItem] = deriveDecoder

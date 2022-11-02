@@ -26,14 +26,14 @@ object Main extends IOApp  {
     Transactor.fromDriverManager[F](conf.driver, conf.url, conf.user, conf.pass)
 
   def makeRouters[F[_] : Async](tx: Transactor[F]): List[Router[F]] = {
-    val inventoryRepo = new InventoryRepo
     val itemTypeRepo = new ItemTypeRepo
+    val inventoryRepo = new InventoryRepo
 
-    val inventoryService = new InventoryService[F](tx, inventoryRepo)
     val itemTypeService = new ItemTypeService[F](tx, itemTypeRepo)
+    val inventoryService = new InventoryService[F](tx, inventoryRepo, itemTypeService)
 
     List(
-      new InventoryRouter[F](inventoryService),
+      new InventoryRouter[F](inventoryService, itemTypeService),
       new ItemTypeRouter[F](itemTypeService)
     )
   }

@@ -13,11 +13,16 @@ import java.util.UUID
 
 final case class ItemTypeService[F[_]: MonadCancelThrow](xa: Transactor[F],
                                                          repo: ItemTypeRepo) {
-  def list(): F[Either[Throwable, List[ItemType]]] = repo.list.transact(xa)
+  def list() =
+    repo.list.transact(xa)
 
-  def find(id: String): F[Either[Throwable, Option[ItemType]]] = repo.find(id).transact(xa)
+  def find(id: String) =
+    repo.find(id).transact(xa)
 
-  def insert(dto: AddItemTypeRequest): F[Either[Throwable, ItemType]] =
+  def findBy(code: String) =
+    repo.findByCode(code.trim).transact(xa)
+
+  def insert(dto: AddItemTypeRequest) =
     repo.insert(
       ItemType(
         id = UUID.randomUUID().toString,
